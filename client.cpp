@@ -3,10 +3,14 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 const int PORT = 5555;
 
 class HomeAutomationClient {
+private:
+    int client_socket;
+    sockaddr_in server_address;
 public:
     HomeAutomationClient() {
         client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -45,13 +49,11 @@ public:
         std::cout << "Server response: " << buffer << std::endl;
     }
 
-    void close() {
+    void Close() {
         close(client_socket);
     }
 
-private:
-    int client_socket;
-    sockaddr_in server_address;
+
 };
 
 int main() {
@@ -75,7 +77,7 @@ int main() {
         client.send_command(command);
     }
 
-    client.close();
+    client.Close();
 
     return 0;
 }
