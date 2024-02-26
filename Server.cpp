@@ -3,12 +3,21 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <unordered_map>
 
 const int PORT = 5555;
 const int MAX_CONNECTIONS = 5;
 
 class HomeAutomationServer {
 public:
+    std::unordered_map<std::string, bool> devices = {
+        {"lamp", false},
+        {"fan", false},
+        {"tv", false},
+        {"refrigerator", false},
+        {"air_cooler", false},
+        {"washing_machine", false}
+    };
     HomeAutomationServer() {
         server_socket = socket(AF_INET, SOCK_STREAM, 0);
         if (server_socket == -1) {
@@ -83,14 +92,7 @@ private:
         }
     }
 
-    std::unordered_map<std::string, bool> devices = {
-        {"lamp", false},
-        {"fan", false},
-        {"tv", false},
-        {"refrigerator", false},
-        {"air_cooler", false},
-        {"washing_machine", false}
-    };
+    
 };
 
 int main() {
