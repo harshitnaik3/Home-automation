@@ -1,0 +1,154 @@
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+const int PORT = 3333;
+
+class HomeAutomationClient
+{
+private:
+    int client_socket;
+    sockaddr_in server_address;
+
+public:
+    HomeAutomationClient()
+    {
+        client_socket = socket(AF_INET, SOCK_STREAM, 0);
+        if (client_socket == -1)
+        {
+            std::cerr << "Error creating client socket." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        server_address.sin_family = AF_INET;
+        server_address.sin_port = htons(PORT);
+
+        if (inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr) <= 0)
+        {
+            std::cerr << "Invalid server address." << std::endl;
+            close(client_socket);
+            exit(EXIT_FAILURE);
+        }
+
+        if (connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1)
+        {
+            std::cerr << "Error connecting to the server." << std::endl;
+            close(client_socket);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    void send_command(const std::string &command)
+    {
+        ssize_t bytes_sent = send(client_socket, command.c_str(), command.length(), 0);
+        if (bytes_sent == -1)
+        {
+            std::cerr << "Error sending command to server." << std::endl;
+            close(client_socket);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    void Close()
+    {
+        close(client_socket);
+    }
+
+    std::string get_status(const std::string &device)
+    {
+        std::string command = device + ",get_status";
+        send_command(command);
+        char buffer[1024];
+        ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (bytes_received <= 0)
+        {
+            std::cerr << "Error receiving response from server." << std::endl;
+            return "";
+        }
+        buffer[bytes_received] = '\0';
+        return std::string(buffer);
+    }
+
+    void control_device(const std::string &device, const std::string &action)
+    {
+        std::string command = device + "," + action;
+        send_command(command);
+        char buffer[1024];
+        ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (bytes_received <= 0)
+        {
+            std::cerr << "Error receiving response from server." << std::endl;
+            return;
+        }
+        buffer[bytes_received] = '\0';
+        std::cout << "Server response: " << buffer << std::endl;
+    }
+
+    void menu()
+    {
+        while (true)
+        {
+            std::cout << "\nAvailable Devices with current status:\n";
+
+            std::string lamp_status = get_status("lamp");
+            std::string fan_status = get_status("fan");
+            std::string tv_status = get_status("tv");
+            std::string refrigerator_status = get_status("refrigerator");
+            std::string air_cooler_status = get_status("air_cooler");
+            std::string washing_machine_status = get_status("washing_machine");
+
+            std::cout << "1. Lamp: " << lamp_status << "\n";
+            std::cout << "2. Fan: " << fan_status << "\n";
+            std::cout << "3. TV: " << tv_status << "\n";
+            std::cout << "4. Refrigerator: " << refrigerator_status << "\n";
+            std::cout << "5. Air Cooler: " << air_cooler_status << "\n";
+            std::cout << "6. Washing Machine: " << washing_machine_status << "\n";
+            std::cout << "7. Exit\n";
+
+            int choice;
+            std::cout << "Enter your choice: ";
+            std::cin >> choice;
+            std::string device;
+            std::string action;
+            switch (choice)
+            {
+            case 1:
+                device = "lamp";
+                break;
+            case 2:
+                device = "fan";
+                break;
+            case 3:
+                device = "tv";
+                break;
+            case 4:
+                device = "refrigerator";
+                break;
+            case 5:
+                device = "air_cooler";
+                break;
+            case 6:
+                device = "washing_machine";
+                break;
+            case 7:
+                return; // Exit loop
+            default:
+                std::cerr << "Invalid choice.\n";
+                continue;
+            }
+            std::cout << "Enter action (on/off): ";
+            std::cin >> action;
+            control_device(device, action);
+        }
+    }
+};
+
+int main()
+{
+    HomeAutomationClient client;
+    client.menu();
+    client.Close();
+    return 0;
+}
